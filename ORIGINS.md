@@ -15,3 +15,13 @@ coverage, not proof of originality or ownership.
 No runtime histories, review receipts, inventories, private terms or real data are
 included. The project MIT license grants no rights in source files reviewed with
 the tool. Tests and privacy screens never grant approval to publish those files.
+
+## v0.11 intake evidence bindings
+
+The owner requested AI-assisted implementation and synthetic Python/Java tests for
+persisted selection/policy bindings. The existing in-memory binding object is now
+saved in new v2 packets; the read-only verifier checks it before candidate access.
+Legacy behavior is explicitly limited and strict mode can refuse it. Tests invent
+legacy-shaped packets; no actual historical/private record is read or upgraded.
+No new external code/dependency is introduced. Existing MIT grants/notices stay
+unchanged. Private test records and the original held Java task remain excluded.

@@ -16,8 +16,9 @@ _spec = importlib.util.spec_from_file_location(
 gate = importlib.util.module_from_spec(_spec)
 exec(compile(_spec.loader.get_source(_spec.name), _spec.origin, "exec"), gate.__dict__)
 
-OUTPUT_FILES = ("CLAIM.json", "proposal.json", "review-draft.json", "CHECKLIST.md",
-                "CHECKLIST.txt", "INTAKE-COMPLETE.json")
+LEGACY_OUTPUT_FILES = ("CLAIM.json", "proposal.json", "review-draft.json", "CHECKLIST.md",
+                       "CHECKLIST.txt", "INTAKE-COMPLETE.json")
+OUTPUT_FILES = LEGACY_OUTPUT_FILES[:-1] + ("evidence-bindings.json", LEGACY_OUTPUT_FILES[-1])
 PENDING_FIELDS = ("decision", "source_authority", "ownership", "confidentiality", "rights", "notices")
 ERROR_CODES = {"REVIEW_PENDING", "SELECTION_SCHEMA", "ARTIFACT_INELIGIBLE", "CONTROL_LOCATION",
                "OUTPUT_EXISTS", "OUTPUT_UNAVAILABLE", "INPUT_UNSAFE", "INPUT_LIMIT", "TEXT_ONLY",
@@ -272,8 +273,14 @@ def build_intake(candidate_root, selection_path, output_path):
                              **{key: "pending" for key in PENDING_FIELDS}} for row in files]}
         gate._review(review)
         review_raw = _json_raw(review)
+        bindings = {"format": "outlands-source-export-intake-bindings-v1",
+            "selection_sha256": context["selection_pin"][1],
+            "policy": {key + "_sha256": value[1] for key, value in policies.items()},
+            "files": files, "proposal_sha256": gate._sha(proposal_raw),
+            "review_draft_sha256": gate._sha(review_raw)}
         buffers = {"CLAIM.json": CLAIM_RAW, "proposal.json": proposal_raw, "review-draft.json": review_raw,
-                   "CHECKLIST.md": CHECKLIST_RAW, "CHECKLIST.txt": CHECKLIST_RAW}
+                   "CHECKLIST.md": CHECKLIST_RAW, "CHECKLIST.txt": CHECKLIST_RAW,
+                   "evidence-bindings.json": _json_raw(bindings)}
         _need(all(len(raw) <= gate.MAX_META for raw in buffers.values()), "INPUT_LIMIT")
         phase = "recheck"
         _recheck(context)
@@ -292,16 +299,14 @@ def build_intake(candidate_root, selection_path, output_path):
         _recheck(context)
         _same_parent(context)
         _check_packet(context, packet, buffers)
-        marker = {"format": "outlands-source-export-intake-complete-v1", "status": "HOLD",
+        marker = {"format": "outlands-source-export-intake-complete-v2", "status": "HOLD",
                   "publication_authorized": False, "export_performed": False,
                   "files": {name: gate._sha(raw) for name, raw in buffers.items()}}
         phase = "write"
         _write_new(packet, OUTPUT_FILES[-1], _json_raw(marker))
         result["files_written"].append(OUTPUT_FILES[-1])
         result["complete_written"] = True
-        result["bindings"] = {"format": "outlands-source-export-intake-bindings-v1",
-            "selection_sha256": context["selection_pin"][1], "policy": {key + "_sha256": value[1] for key, value in policies.items()},
-            "files": files, "proposal_sha256": gate._sha(proposal_raw), "review_draft_sha256": gate._sha(review_raw)}
+        result["bindings"] = bindings
         result["status"], result["reason_codes"] = "HOLD", ["REVIEW_PENDING"]
     except IntakeIssue as error:
         result["status"], result["reason_codes"] = "UNVERIFIABLE" if created else "REFUSED", [error.code]
