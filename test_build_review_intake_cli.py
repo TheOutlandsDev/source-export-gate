@@ -21,7 +21,7 @@ from test_large_candidate_cli import sized_files
 
 SCRIPT = Path(__file__).absolute().with_name("build_review_intake.py")
 GATE = SCRIPT.with_name("source_export_gate.py")
-OUTPUT_ORDER = ("CLAIM.json", "proposal.json", "review-draft.json", "CHECKLIST.md", "CHECKLIST.txt", "INTAKE-COMPLETE.json")
+OUTPUT_ORDER = ("CLAIM.json", "proposal.json", "review-draft.json", "CHECKLIST.md", "CHECKLIST.txt", "evidence-bindings.json", "INTAKE-COMPLETE.json")
 PENDING_FIELDS = ("decision", "source_authority", "ownership", "confidentiality", "rights", "notices")
 RESULT_FIELDS = {"format", "status", "reason_codes", "declared_files", "content_reads", "recheck_reads", "draft_created",
     "complete_written", "files_written", "publication_status", "publication_authorized", "export_performed",
@@ -106,11 +106,20 @@ def pending_proof(case, label, builder_result, gate_result):
             or claim["publication_authorized"] is not False or claim["export_performed"] is not False):
         raise AssertionError("intake claim must remain held without authority")
     if (set(marker) != {"format", "status", "publication_authorized", "export_performed", "files"}
-            or marker["format"] != "outlands-source-export-intake-complete-v1"
+            or marker["format"] != "outlands-source-export-intake-complete-v2"
             or marker["status"] != "HOLD" or marker["publication_authorized"] is not False
             or marker["export_performed"] is not False
             or marker["files"] != {name: digest((case.output / name).read_bytes()) for name in OUTPUT_ORDER[:-1]}):
-        raise AssertionError("completion marker must bind the five draft buffers")
+        raise AssertionError("completion marker must bind all six draft buffers")
+    binding = json.loads((case.output / "evidence-bindings.json").read_bytes())
+    if (set(binding) != {"format", "selection_sha256", "policy", "files", "proposal_sha256", "review_draft_sha256"}
+            or binding["format"] != "outlands-source-export-intake-bindings-v1"
+            or binding["selection_sha256"] != digest(case.selection.read_bytes())
+            or binding["policy"] != {"gate_sha256": digest(GATE.read_bytes()), "intake_sha256": digest(SCRIPT.read_bytes())}
+            or binding["files"] != proposal["files"]
+            or binding["proposal_sha256"] != digest(proposal_raw)
+            or binding["review_draft_sha256"] != digest(review_raw)):
+        raise AssertionError("persisted bindings must match exact inputs and policies")
     if (builder_result["status"] != "HOLD" or gate_result["eligibility"] != "HOLD"
             or gate_result["reason_codes"] != ["REVIEW_INCOMPLETE"] or gate_result["content_reads"] != 0):
         raise AssertionError("pending review must remain blocked before candidate reads")

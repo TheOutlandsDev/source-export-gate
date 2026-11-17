@@ -31,9 +31,9 @@ SUITES = (
     ("intake-cli", "test_build_review_intake_cli.py", "cli"),
     ("intake-verify", "test_verify_review_intake.py", "cli"),
 )
-EXPECTED_METHODS = (37, 29, 26, 13, 29, 12, 5, 5, 19, 10, 29, 10, 22)
-EXPECTED_TOTAL = 246
-EXPECTED_OWNED_CLI = 423
+EXPECTED_METHODS = (37, 29, 26, 13, 29, 12, 5, 5, 19, 10, 30, 10, 43)
+EXPECTED_TOTAL = 268
+EXPECTED_OWNED_CLI = 425
 assert __debug__
 parser = argparse.ArgumentParser(description="One synthetic offline suite; output must be new and private.")
 parser.add_argument("--output", required=True)

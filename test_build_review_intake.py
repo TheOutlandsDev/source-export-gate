@@ -123,6 +123,7 @@ class BuildReviewIntakeTests(unittest.TestCase):
             self.assertEqual(result["declared_files"], 3)
             self.assertEqual([name for name, size in seen[:3]], sorted(DEFAULT_FILES))
             binding = result["bindings"]
+            self.assertEqual(json.loads((case.output / "evidence-bindings.json").read_bytes()), binding)
             self.assertEqual(set(binding), {"format", "selection_sha256", "policy", "files", "proposal_sha256", "review_draft_sha256"})
             self.assertEqual(binding["format"], "outlands-source-export-intake-bindings-v1")
             self.assertEqual(binding["selection_sha256"], digest(case.selection.read_bytes()))
@@ -394,6 +395,23 @@ class BuildReviewIntakeTests(unittest.TestCase):
             self.assertEqual(result["files_written"], ["CLAIM.json"])
             self.assertEqual({path.name for path in case.output.iterdir()}, {"CLAIM.json", "proposal.json"})
             self.assertGreater(case.proposal.stat().st_size, 0)
+            self.assertFalse((case.output / "INTAKE-COMPLETE.json").exists())
+
+    def test_half_written_evidence_retained_without_completion_or_retry(self):
+        with intake_fixture() as case:
+            original = builder._write_new
+            def half(fd, name, raw):
+                if name == "evidence-bindings.json":
+                    original(fd, name, raw[:len(raw) // 2])
+                    raise OSError("controlled partial evidence write")
+                return original(fd, name, raw)
+            with patch.object(builder, "_write_new", side_effect=half):
+                result, _ = self.call(case, "UNVERIFIABLE")
+            self.assertEqual(result["files_written"], list(OUTPUT_ORDER[:5]))
+            self.assertEqual({p.name for p in case.output.iterdir()}, set(OUTPUT_ORDER[:6]))
+            self.assertGreater((case.output / "evidence-bindings.json").stat().st_size, 0)
+            self.assertFalse(result["complete_written"])
+            self.assertIsNone(result["bindings"])
             self.assertFalse((case.output / "INTAKE-COMPLETE.json").exists())
 
     def test_keyboardinterrupt_retains_pending_prefix_and_closes_owned_fds(self):

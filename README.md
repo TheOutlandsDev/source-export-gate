@@ -1,4 +1,4 @@
-# Source Export Gate
+# Source Export Gate v0.11
 
 Local Python tools for preparing and checking explicitly selected source files.
 Review declarations and matching hashes never grant publication approval.
@@ -6,7 +6,8 @@ Review declarations and matching hashes never grant publication approval.
 - Assess declared source eligibility before a pinned offline text screen.
 - Save and recheck private observations and batch coverage.
 - Build metadata-only intake proposals with every review field pending.
-- Verify pending intake integrity and selected-content freshness read-only.
+- Save exact selection and gate/builder policy hashes in v2 intake packets.
+- Verify bindings and selected-content freshness read-only, with explicit legacy limits.
 
 Pending intake reviews remain HOLD, including when current hashes are consistent.
 No source upload, Git action, provider request or automatic review approval occurs.
@@ -23,7 +24,7 @@ Run from this package with a NEW output directory under an owner-private700 pare
 python3 -I -B run_tests.py --output /absolute/private/new-test-run
 ```
 
-The runner expects246 methods/423 fixed CLI launches, six large-fixture proofs
+The runner expects 268 methods/425 fixed CLI launches, six large-fixture proofs
 and two pending-intake proofs. It creates private outputs outside the package;
 never commit them. Test data are invented Python/Java/Unicode text, not executed
 or compiled. Temporary case teardown remains; logs/results/proofs are retained.
